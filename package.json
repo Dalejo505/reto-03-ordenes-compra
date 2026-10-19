@@ -10,7 +10,8 @@
   "scripts": {
     "postinstall": "npm --prefix web install --include=dev",
     "dev": "concurrently -k -n api,web -c blue,green \"tsx watch src/server.ts\" \"npm --prefix web run dev\"",
-    "build": "npm --prefix web run build",
+    "build": "node scripts/modulo.mjs --check && npm --prefix web run build",
+    "modulo": "node scripts/modulo.mjs",
     "start": "tsx src/server.ts",
     "demo": "tsx demo.ts",
     "typecheck": "tsc --noEmit"

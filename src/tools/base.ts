@@ -2,7 +2,15 @@ import { join } from "node:path"
 import { z } from "zod"
 import { agregarLinea, ErrorNegocio, rutas } from "../oc/archivos"
 
-export type ContextoHerramienta = { directory: string; sessionId: string }
+/**
+ * Contexto que recibe cada herramienta. `sessionId` es el de esta app; `sessionID` es como lo
+ * entregan plataformas de agentes como OpenCode al usar el módulo reutilizable (modulo/).
+ */
+export type ContextoHerramienta = { directory: string; sessionId?: string; sessionID?: string }
+
+export function sesionDe(ctx: ContextoHerramienta): string {
+  return ctx.sessionId ?? ctx.sessionID ?? "sin-sesion"
+}
 
 type Forma = Record<string, z.ZodType>
 export type ArgsDe<S extends Forma> = z.output<z.ZodObject<S>>
@@ -64,7 +72,7 @@ function casoDe(crudos: unknown): string | null {
 }
 
 async function registrar(ctx: ContextoHerramienta, herramienta: string, caso: string | null, ok: boolean, resumen: string) {
-  const linea = { ts: new Date().toISOString(), sesion: ctx.sessionId, herramienta, caso, ok, resumen }
+  const linea = { ts: new Date().toISOString(), sesion: sesionDe(ctx), herramienta, caso, ok, resumen }
   try {
     await agregarLinea(join(rutas.out(ctx.directory), "log.jsonl"), JSON.stringify(linea))
   } catch {

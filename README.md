@@ -125,4 +125,5 @@ src/server.ts                   servidor local (proceso persistente)
 src/vercel.ts, api/index.mjs    función serverless de Vercel
 web/                            front de chat: React + Vite + Tailwind + shadcn/ui
 demo.ts                         verificación sin modelo
+modulo/                         bonus: agente reutilizable (agent.md, tools/oc.ts, skill/), ver modulo/README.md
 ```

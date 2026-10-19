@@ -196,7 +196,7 @@ En los fixtures, sol-005 muestra el patrón: la factura FC-88231 es del 10 de ag
 | HU-6 Manejo de errores | Hecho | Pruebas con paquetes corruptos adicionales a los fixtures. |
 | Front, API, ciclo y confirmación | Hecho, probado con el modelo real (flujo `sol-004` del PRD) | Streaming y autenticación de usuarios. |
 | Despliegue y link público | Hecho: https://periferia-ordenes-compra.vercel.app (Vercel) | Persistencia fuera de /tmp (Blob/KV o base de datos). |
-| Bonus `modulo/` | Pendiente | — |
+| Bonus `modulo/` | Hecho: `tools/oc.ts` reexporta las herramientas de la app; `agent.md` y `SKILL.md` se generan desde `agent/prompt.md` y `src/knowledge/` y el build falla si divergen | Probarlo dentro de una plataforma de agentes real (por ejemplo OpenCode). |
 
 ## 11. Uso de IA
 

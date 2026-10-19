@@ -11,7 +11,7 @@ import { validarPaquete } from "../oc/reglas"
 import { DerivadosSchema, OrdenCompraSchema, PaqueteSchema, type Paquete } from "../oc/tipos"
 import { SapMock } from "../sap/mock"
 import type { SapAdapter } from "../sap/adapter"
-import { definirHerramienta, type ContextoHerramienta, type Exito } from "./base"
+import { definirHerramienta, sesionDe, type ContextoHerramienta, type Exito } from "./base"
 
 type ResultadoCrear = {
   numero_oc: string
@@ -173,7 +173,7 @@ export const crear = definirHerramienta(
       await control("rechazada")
       throw new ErrorNegocio(`El payload no coincide con el construido por oc_construir_payload (campos: ${distintos.join(", ")}). Vuelve a construirlo sin modificarlo.`)
     }
-    const confirmadoPor = `analista (chat, sesión ${ctx.sessionId})`
+    const confirmadoPor = `analista (chat, sesión ${sesionDe(ctx)})`
     const orden = { ...esperada, excepciones: esperada.excepciones.map((e) => ({ ...e, confirmado_por: confirmadoPor })) }
 
     const proveedorSap = await sap(raiz).consultarProveedor(orden.proveedor.nit)
