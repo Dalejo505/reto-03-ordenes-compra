@@ -7,20 +7,24 @@ La analista administrativa digita a mano en SAP cada orden de compra y valida de
 ## 2. Arquitectura
 
 ```
-┌───────────────┐  POST /api/chat   ┌─────────────────────────────────────────────┐
-│ web/ (chat)   │ ────────────────▶ │ src/server.ts (node:http)                    │
-│ · historial   │ ◀──────────────── │   └─ src/agente/ciclo.ts                     │
-│ · tool calls  │  reply, toolCalls,│        prompt → ProveedorLLM → herramientas  │
-│ · confirmar   │  needsConfirmation│        · tope de iteraciones y de tokens     │
-└───────────────┘                   │        · regla de confirmación (CA3)         │
-                                    │   └─ src/llm/adapter.ts ← anthropic.ts        │
-                                    │   └─ src/tools/oc.ts (zod) ──▶ src/oc/*      │
-                                    │                         └──▶ src/sap/mock.ts │
-                                    └──────────────┬────────────────────┬─────────┘
-                                                   │                    │
-                                   fixtures/ (solo lectura)       out/ (escritura)
-                                   solicitudes, maestros          sap/ordenes.jsonl, control.csv,
-                                                                  log.jsonl, <caso>/*, sesiones/
+┌──────────────────────┐  POST /api/chat    ┌───────────────────────────────────────────────┐
+│ web/ React + shadcn  │ ─────────────────▶ │ src/app.ts (manejador HTTP: API + estáticos)  │
+│ · panel solicitudes  │ ◀───────────────── │   montado por src/server.ts (local / Render)  │
+│ · historial          │ reply, toolCalls,  │   o src/vercel.ts → api/index.mjs (Vercel)    │
+│ · tool calls         │ needsConfirmation  │   └─ src/agente/ciclo.ts                      │
+│ · confirmar          │                    │        prompt → ProveedorLLM → herramientas   │
+└──────────────────────┘                    │        · topes de iteraciones, tokens, IP     │
+                                            │        · regla de confirmación (CA3)          │
+                                            │   └─ src/llm/adapter.ts ← anthropic.ts         │
+                                            │   └─ src/tools/oc.ts (zod) ──▶ src/oc/*       │
+                                            │                          └──▶ src/sap/mock.ts │
+                                            └───────────────┬─────────────────────┬─────────┘
+                                                            │                     │
+                                            fixtures/ (solo lectura)      out/ u OUT_DIR (escritura)
+                                            solicitudes, maestros         sap/ordenes.jsonl, control.csv,
+                                                                          log.jsonl, <caso>/*, sesiones/
+
+modulo/ (bonus) = agent.md (← agent/prompt.md) + tools/oc.ts (reexporta src/tools/oc.ts) + skill/ (← src/knowledge/)
 ```
 
 | Pieza | Dónde vive | Qué contiene |
@@ -31,6 +35,8 @@ La analista administrativa digita a mano en SAP cada orden de compra y valida de
 | Parámetros de negocio | `src/oc/config.ts` | Tolerancia del 2 %, ±1 de aritmética, 40 caracteres, sociedad, primer número de OC |
 
 El system prompt se arma con `prompt.md` más el archivo de conocimiento. Un cambio en las reglas de negocio toca `src/oc/` o `config.ts`; nunca el servidor ni el ciclo.
+
+**Links:** app https://periferia-ordenes-compra.vercel.app · código https://github.com/Dalejo505/reto-03-ordenes-compra
 
 ## 3. Ciclo del agente
 
@@ -67,7 +73,7 @@ El system prompt se arma con `prompt.md` más el archivo de conocimiento. Un cam
 
 ## 5. Matriz de controles
 
-Implementada en `src/oc/reglas.ts`. Cada regla es una función pura `(contexto) → { bloqueos, confirmaciones, derivados, retroactiva }` y `validarPaquete` las agrega.
+Implementada en `src/oc/reglas.ts`. Cada regla es una función pura `(contexto) → { bloqueos, confirmaciones, derivados, retroactiva }` y `validarPaquete` las agrega. `oc_validar` devuelve también `controles`, con el estado de cada RC (`ok`, `bloqueo`, `confirmacion`, `derivado` o `no_evaluado`), para que el agente diga qué pasó y qué no sin inferirlo.
 
 | Regla | Implementación | Tipo | Caso que la dispara |
 |---|---|---|---|
@@ -155,9 +161,10 @@ En los fixtures, sol-005 muestra el patrón: la factura FC-88231 es del 10 de ag
 | Precio de la OC tomado de la solicitud | Tomar el de la cotización | La solicitud es lo que aprobó el líder. Si difiere de la cotización, se confirma; si debe cambiar, se re-aprueba. |
 | Backend con `node:http`; front con React, Vite y shadcn/ui, compilado y servido por el mismo backend | Express/Hono, o un front desplegado aparte | El backend necesita pocas rutas y no amerita un framework. shadcn da componentes accesibles (colapsables, alertas, tablas) y modo oscuro sin escribir CSS a mano. Servir `web/dist` desde Node deja un solo servicio para desplegar y evita configurar CORS. |
 | Node + `tsx` | Bun | Bun no estaba disponible en la máquina de desarrollo. El código es compatible con ambos. |
-
 | Desplegar en Vercel (función serverless + estáticos) | Render u otro host con proceso persistente | Vercel da un link estable y rápido, sin "dormir" el servicio. A cambio, el estado (sesiones, SAP simulado, logs) vive en `/tmp` y puede perderse si cambia la instancia. Por eso el manejador HTTP está separado del servidor (`src/app.ts`): el mismo código corre en local, en Render (`render.yaml`) o en Vercel. |
 | `esbuild` empaqueta la API en un solo módulo para Vercel | Dejar que Vercel compile el TypeScript | El código usa imports ESM sin extensión (estilo bundler). Empaquetar evita errores de resolución en el runtime y deja un artefacto único y verificable localmente. |
+| `modulo/` reexporta y genera desde las fuentes de la app | Copiar prompt, conocimiento y herramientas en `modulo/` | Las copias divergen con el tiempo. Con el reexport y la generación, más el chequeo en `npm run build`, el módulo es por construcción el mismo agente que corre en la app. |
+| Límite de mensajes por IP en `/api/chat` | Solo el tope de tokens por sesión | Con un link público, cualquiera puede abrir sesiones nuevas sin parar. El límite por IP acota el gasto total de la clave. |
 
 ### Dependencias y por qué
 
@@ -200,10 +207,44 @@ En los fixtures, sol-005 muestra el patrón: la factura FC-88231 es del 10 de ag
 
 ## 11. Uso de IA
 
-> Completar con el detalle real antes de entregar.
+**Asistente usado para construir:** Claude Code (aplicación de escritorio) con el modelo Claude Opus 5.5. Otra cosa es el modelo que usa el agente en ejecución (Claude Sonnet 5.5, sección 4): ese es parte del producto, no una herramienta de desarrollo.
 
-- **Claude Code (Claude Opus 5.5)** se usó para: leer y resumir el PRD; diseñar la arquitectura; escribir el código de dominio, las herramientas, el ciclo del agente, el adaptador LLM, el front, la demo y esta documentación; y probar el ciclo con un proveedor guionado.
-- **Revisión humana:** _(qué revisé línea por línea, qué cambié y qué descarté de lo propuesto, y por qué)_.
+**Para qué lo usé:**
+
+| Etapa | Qué hizo el asistente | Qué decidí o revisé yo |
+|---|---|---|
+| Análisis | Leyó y resumió los tres PRD (01 proveedores, 02 contratos, 03 OC), comparó dificultad y riesgo, y recomendó el 03. Luego leyó los fixtures y anticipó el resultado esperado de cada caso. | Elegí el reto 03. Contrasté el resumen con el instructivo en PDF del reto. |
+| Dominio y herramientas | Escribió `src/oc/*` (lectura del paquete, reglas RC1–RC10, payload, evidencia, control), `src/sap/*` y `src/tools/oc.ts` con zod. | Revisé que cada regla correspondiera a la tabla 7.3 y que los 6 casos dieran el resultado esperado del PRD. |
+| Ciclo del agente | Escribió el ciclo manual, el adaptador `ProveedorLLM`, el guardián de confirmación y el prompt. | Acepté aplicar CA3 en el servidor y no solo en el prompt. |
+| Front | Hizo una primera versión en HTML plano. | **La descarté** y pedí rehacerla con React + shadcn/ui para una mejor experiencia y presentación. |
+| Despliegue | Propuso Render (`render.yaml`). | **Elegí Vercel.** El asistente adaptó la app a serverless: separó el manejador HTTP, empaquetó con esbuild y movió `out/` a `/tmp`. Dejé `render.yaml` como alternativa. |
+| Bonus | Armó `modulo/` reexportando las herramientas y generando `agent.md` y `SKILL.md` desde las fuentes, con un chequeo en el build. | Pedí el bonus y validé que no fueran copias divergentes. |
+| Documentación | Redactó README y este documento a partir del trabajo hecho. | Ajusté decisiones, modelo y costos a lo que realmente elegí y medí. |
+
+**Propuestas que cambié o descarté:**
+
+- **Modelo:** el asistente propuso Claude Opus 5.5 por defecto. Lo cambié a Sonnet 5.5 por costo: la lógica crítica es determinista y está en las herramientas, y el flujo real cuesta la mitad (sección 4).
+- **Sin pagar la API:** propuso usar Gemini (capa gratuita) mediante un adaptador nuevo. Lo descarté y usé una API key de Anthropic con límite de gasto.
+- **Front en HTML plano y despliegue en Render:** reemplazados como se describe arriba.
+
+**Problemas que salieron al revisar y probar, y cómo se corrigieron:**
+
+1. El servidor no leía `.env`; solo usaba las variables de la terminal. Se agregó `src/env.ts` (`process.loadEnvFile`).
+2. Al configurar el entorno, un token quedó en la variable equivocada (`ACCESS_KEY`) y en `.env.example`. El asistente lo detectó sin mostrar el valor, se corrigió antes del primer commit y se verificó que el historial de git no contenga claves.
+3. En la auditoría contra el PRD: las llamadas que bloquea el guardián de confirmación no quedaban en `out/log.jsonl` (CA4). Se agregó ese registro.
+4. Con el modelo real, el agente avisó que `oc_validar` no detallaba el resultado de cada control. Se agregó `controles` (estado por RC) y se actualizó el prompt.
+5. shadcn instaló una dependencia llamada `cn`. Antes de aceptarla se verificó que es la utilidad oficial del mantenedor de shadcn.
+6. La CLI de Vercel rechazó el nombre de proyecto con dígitos. Se creó el proyecto como `periferia-ordenes-compra`.
+
+**Cómo se verificó lo que entrego:**
+
+- Typecheck estricto sin `any`.
+- `demo.ts` ejecutado dos veces con salida idéntica (determinismo).
+- Un proveedor LLM guionado para probar el ciclo sin costo: confirmación en el mismo turno rechazada, confirmación en el turno siguiente aceptada, payload alterado rechazado, error del proveedor sin tumbar la sesión.
+- El flujo de ejemplo del PRD (`sol-004` y luego "confirmo") con el modelo real.
+- El build en una copia limpia con `NODE_ENV=production`, la función de Vercel montada en local y pruebas del link desplegado.
+
+Todo el código entregado lo generó el asistente bajo mi dirección. Las decisiones de alcance, tecnología, modelo y despliegue son mías, y antes de la defensa repasé la lógica de `src/oc/reglas.ts`, `src/tools/oc.ts` y `src/agente/ciclo.ts`, que es la que sostiene los controles.
 
 ## 12. Riesgos de producción y mitigación
 
@@ -217,3 +258,6 @@ En los fixtures, sol-005 muestra el patrón: la factura FC-88231 es del 10 de ag
 | Costo del modelo | Topes de iteraciones y tokens por sesión, caché del prompt, esfuerzo `medium` y medición de `usage` por caso. |
 | Credenciales filtradas | La clave solo vive en una variable de entorno del backend y nunca va a logs ni respuestas. `ACCESS_KEY` es opcional para el link y en producción se usaría SSO. |
 | Concurrencia (dos analistas sobre la misma solicitud) | El mock serializa las escrituras. En SAP, la idempotencia por referencia externa y el bloqueo optimista. |
+| Estado efímero en serverless: en Vercel, sesiones, OC simuladas y logs viven en `/tmp` y se pierden al reciclar la instancia | En producción: sesiones y log de control en una base de datos (Postgres, Vercel KV o Blob) y la OC en SAP real, que es la fuente de verdad. El manejador ya está separado del almacenamiento por rutas (`OUT_DIR`). |
+| Abuso del link público (gasto de la clave) | Límite de 40 mensajes por hora por IP, 200 mil tokens por sesión, `ACCESS_KEY` opcional y un límite de gasto mensual en la consola de Anthropic. |
+| Instrucciones maliciosas dentro de un correo o una cotización (prompt injection) | El texto de los adjuntos es dato: los controles son código determinista. Crear una OC exige que el payload coincida con el reconstruido desde los archivos y una confirmación humana explícita en el turno siguiente. Ningún texto puede saltarse RC1–RC10. |
