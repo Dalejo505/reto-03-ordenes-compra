@@ -40,7 +40,24 @@ Después abre http://localhost:3000. Las variables se leen del entorno; ver `.en
 
 Lo más simple es copiar `.env.example` a `.env` y completarlo: el servidor lo carga al arrancar, y `.env` está en `.gitignore`. Las variables de la terminal tienen prioridad sobre el archivo.
 
-## Despliegue (Render)
+## Despliegue en Vercel (link de la defensa)
+
+`vercel.json` sirve `web/dist` como sitio estático y la API como una sola función serverless (`api/index.mjs`). El build empaqueta `src/vercel.ts` con esbuild (`scripts/build-api.mjs`) e incluye `fixtures/`, `agent/` y `src/knowledge/` en la función.
+
+```bash
+npx vercel link
+npx vercel env add ANTHROPIC_API_KEY production
+npx vercel deploy --prod
+```
+
+`vercel env add` pide el valor de forma interactiva; la clave nunca pasa por el repositorio. Las demás variables (`LLM_MODEL`, `ACCESS_KEY`…) se agregan igual o en el panel del proyecto.
+
+Limitaciones de serverless:
+- Solo `/tmp` es escribible: `out/` se redirige ahí con `OUT_DIR`.
+- Sesiones, OC simuladas y logs viven en `/tmp` de la instancia, así que se pierden cuando Vercel recicla o cambia de instancia. Para la demo alcanza; en producción irían a una base de datos o a Vercel Blob/KV.
+- El límite por IP es por instancia. La duración máxima de la función es de 300 s.
+
+## Despliegue alternativo (Render)
 
 El repositorio trae `render.yaml`: un solo servicio web que compila el front y sirve la API.
 
@@ -103,7 +120,9 @@ src/oc/                         dominio: paquete, maestros, reglas RC1–RC10, p
 src/sap/adapter.ts, mock.ts     interfaz SapAdapter y SAP simulado sobre out/sap/
 src/llm/adapter.ts, anthropic.ts interfaz ProveedorLLM e implementación para Claude
 src/agente/                     ciclo del agente, sesiones, límites
-src/server.ts                   API HTTP y estáticos
+src/app.ts                      manejador HTTP: API y estáticos
+src/server.ts                   servidor local (proceso persistente)
+src/vercel.ts, api/index.mjs    función serverless de Vercel
 web/                            front de chat: React + Vite + Tailwind + shadcn/ui
 demo.ts                         verificación sin modelo
 ```

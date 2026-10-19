@@ -1,0 +1,11 @@
+node_modules
+web/node_modules
+out
+web/dist
+api/_lib
+.env
+.env.*
+!.env.example
+.claude
+.git
+*.log

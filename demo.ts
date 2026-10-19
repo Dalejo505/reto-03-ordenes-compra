@@ -1,8 +1,8 @@
 // Verificación sin modelo: procesa los 6 casos llamando directamente a las herramientas.
 // Uso: npm run demo   (o: bun run demo.ts)
 import { rm } from "node:fs/promises"
-import { join } from "node:path"
 import { fileURLToPath } from "node:url"
+import { rutas } from "./src/oc/archivos"
 import * as oc from "./src/tools/oc"
 
 const raiz = fileURLToPath(new URL(".", import.meta.url))
@@ -54,7 +54,7 @@ async function procesar(caso: string, confirmado?: boolean): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  await rm(join(raiz, "out"), { recursive: true, force: true })
+  await rm(rutas.out(raiz), { recursive: true, force: true })
   console.log("Reto 03 · Órdenes de compra SAP · demo sin modelo")
 
   console.log("\n=== Primera pasada: los 6 casos sin confirmar ===")

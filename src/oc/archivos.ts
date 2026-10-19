@@ -9,8 +9,9 @@ export const rutas = {
   solicitudes: (raiz: string) => join(raiz, "fixtures", "reto-03", "solicitudes"),
   caso: (raiz: string, caso: string) => join(raiz, "fixtures", "reto-03", "solicitudes", caso),
   maestro: (raiz: string, nombre: string) => join(raiz, "fixtures", "reto-03", "maestros", `${nombre}.json`),
-  out: (raiz: string) => join(raiz, "out"),
-  outCaso: (raiz: string, caso: string) => join(raiz, "out", caso),
+  /** Carpeta de salida; OUT_DIR la mueve fuera del proyecto (p. ej. /tmp/out en Vercel). */
+  out: (raiz: string) => process.env.OUT_DIR || join(raiz, "out"),
+  outCaso: (raiz: string, caso: string) => join(rutas.out(raiz), caso),
 }
 
 /** Error esperado de negocio: su mensaje se muestra tal cual al usuario. */
@@ -62,7 +63,9 @@ export async function agregarLinea(ruta: string, linea: string): Promise<void> {
   await appendFile(ruta, linea.endsWith("\n") ? linea : `${linea}\n`)
 }
 
-/** Ruta relativa con "/" para mostrar al usuario sin exponer rutas absolutas. */
+/** Ruta relativa con "/" para mostrar al usuario sin exponer rutas absolutas ("out/sol-001/…"). */
 export function relativa(raiz: string, ruta: string): string {
-  return ruta.slice(raiz.length).replace(/^[\\/]+/, "").replace(/\\/g, "/")
+  const out = rutas.out(raiz)
+  const recorte = (base: string) => ruta.slice(base.length).replace(/^[\\/]+/, "").replace(/\\/g, "/")
+  return ruta.startsWith(out) ? `out/${recorte(out)}` : recorte(raiz)
 }

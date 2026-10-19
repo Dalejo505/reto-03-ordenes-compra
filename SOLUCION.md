@@ -156,6 +156,9 @@ En los fixtures, sol-005 muestra el patrón: la factura FC-88231 es del 10 de ag
 | Backend con `node:http`; front con React, Vite y shadcn/ui, compilado y servido por el mismo backend | Express/Hono, o un front desplegado aparte | El backend necesita pocas rutas y no amerita un framework. shadcn da componentes accesibles (colapsables, alertas, tablas) y modo oscuro sin escribir CSS a mano. Servir `web/dist` desde Node deja un solo servicio para desplegar y evita configurar CORS. |
 | Node + `tsx` | Bun | Bun no estaba disponible en la máquina de desarrollo. El código es compatible con ambos. |
 
+| Desplegar en Vercel (función serverless + estáticos) | Render u otro host con proceso persistente | Vercel da un link estable y rápido, sin "dormir" el servicio. A cambio, el estado (sesiones, SAP simulado, logs) vive en `/tmp` y puede perderse si cambia la instancia. Por eso el manejador HTTP está separado del servidor (`src/app.ts`): el mismo código corre en local, en Render (`render.yaml`) o en Vercel. |
+| `esbuild` empaqueta la API en un solo módulo para Vercel | Dejar que Vercel compile el TypeScript | El código usa imports ESM sin extensión (estilo bundler). Empaquetar evita errores de resolución en el runtime y deja un artefacto único y verificable localmente. |
+
 ### Dependencias y por qué
 
 | Dependencia | Para qué |
@@ -165,6 +168,7 @@ En los fixtures, sol-005 muestra el patrón: la factura FC-88231 es del 10 de ag
 | `pdf-lib` | Generar `aprobacion.pdf` (HU-4, P1) sin binarios nativos. |
 | `tsx` | Ejecutar TypeScript en Node sin paso de compilación, igual que Bun. |
 | `concurrently` (dev) | Que `npm run dev` levante backend y front con un solo comando. |
+| `esbuild` (dev) | Empaquetar la API en una función serverless para Vercel. |
 | Front: `react`, `vite`, `tailwindcss`, componentes de shadcn/ui (`@base-ui/react`, `lucide-react`, `cn`) | La interfaz del chat. |
 | Front: `react-markdown` + `remark-gfm` | Mostrar las tablas Markdown del agente sin interpretar HTML crudo, lo que evita XSS. |
 

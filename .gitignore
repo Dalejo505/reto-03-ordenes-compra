@@ -6,3 +6,5 @@ web/dist/
 !.env.example
 *.log
 .claude/
+api/_lib/
+.vercel/
