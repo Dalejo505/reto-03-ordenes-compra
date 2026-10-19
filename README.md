@@ -2,8 +2,8 @@
 
 Agente conversacional que lee el paquete de una solicitud de compra (correo, solicitud, cotización, aprobación y factura), lo valida contra los maestros con los controles RC1–RC10, construye la OC con trazabilidad, genera la evidencia de aprobación y crea la OC en un SAP simulado. La confirmación humana se exige cuando hay excepciones.
 
-- **Link de prueba:** _pendiente de despliegue_
-- **Clave de acceso:** solo si se define `ACCESS_KEY` en el servidor; el front la pide al cargar.
+- **Link de prueba:** https://periferia-ordenes-compra.vercel.app
+- **Clave de acceso:** no requerida (el link es abierto y está limitado a 40 mensajes por hora por IP). Si se define `ACCESS_KEY`, el front la pide al cargar.
 
 ## Requisitos
 

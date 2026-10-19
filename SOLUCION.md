@@ -195,7 +195,7 @@ En los fixtures, sol-005 muestra el patrón: la factura FC-88231 es del 10 de ag
 | HU-5 Crear en SAP simulado, idempotencia y control | Hecho | Adaptador OData real (sección 6). |
 | HU-6 Manejo de errores | Hecho | Pruebas con paquetes corruptos adicionales a los fixtures. |
 | Front, API, ciclo y confirmación | Hecho, probado con el modelo real (flujo `sol-004` del PRD) | Streaming y autenticación de usuarios. |
-| Despliegue y link público | Pendiente | — |
+| Despliegue y link público | Hecho: https://periferia-ordenes-compra.vercel.app (Vercel) | Persistencia fuera de /tmp (Blob/KV o base de datos). |
 | Bonus `modulo/` | Pendiente | — |
 
 ## 11. Uso de IA
