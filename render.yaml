@@ -1,0 +1,31 @@
+# Blueprint de Render: un solo servicio web que sirve la API y el front compilado.
+# Los secretos (sync: false) se ingresan en el panel de Render al crear el servicio; nunca van al repo.
+services:
+  - type: web
+    name: reto-03-ordenes-compra
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: LLM_MODEL
+        value: claude-sonnet-5-5
+      - key: LLM_EFFORT
+        value: medium
+      - key: MAX_ITERACIONES_POR_TURNO
+        value: "25"
+      - key: MAX_TOKENS_POR_SESION
+        value: "200000"
+      - key: MAX_MENSAJES_POR_HORA_IP
+        value: "40"
+      - key: LLM_TIMEOUT_MS
+        value: "60000"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ACCESS_KEY
+        sync: false

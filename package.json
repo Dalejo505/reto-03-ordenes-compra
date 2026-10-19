@@ -5,10 +5,10 @@
   "type": "module",
   "description": "Agente conversacional que prepara y crea órdenes de compra en un SAP simulado",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.12"
   },
   "scripts": {
-    "postinstall": "npm --prefix web install",
+    "postinstall": "npm --prefix web install --include=dev",
     "dev": "concurrently -k -n api,web -c blue,green \"tsx watch src/server.ts\" \"npm --prefix web run dev\"",
     "build": "npm --prefix web run build",
     "start": "tsx src/server.ts",

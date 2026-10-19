@@ -34,10 +34,28 @@ Después abre http://localhost:3000. Las variables se leen del entorno; ver `.en
 | `MAX_ITERACIONES_POR_TURNO` | Tope de ciclos modelo → herramientas por turno | `25` |
 | `MAX_TOKENS_POR_SESION` | Tope de tokens por sesión | `200000` |
 | `LLM_TIMEOUT_MS` | Timeout de cada llamada al modelo | `60000` |
+| `MAX_MENSAJES_POR_HORA_IP` | Mensajes de chat por hora por IP | `40` |
 | `PORT` | Puerto HTTP | `3000` |
 | `ACCESS_KEY` | Si se define, la API exige el header `x-access-key` | vacío |
 
 Lo más simple es copiar `.env.example` a `.env` y completarlo: el servidor lo carga al arrancar, y `.env` está en `.gitignore`. Las variables de la terminal tienen prioridad sobre el archivo.
+
+## Despliegue (Render)
+
+El repositorio trae `render.yaml`: un solo servicio web que compila el front y sirve la API.
+
+1. Sube el repositorio a GitHub.
+2. En https://dashboard.render.com elige **New → Blueprint**, conecta el repositorio y Render detecta `render.yaml`.
+3. Cuando lo pida, ingresa los secretos:
+   - `ANTHROPIC_API_KEY`: la clave de la consola de Anthropic.
+   - `ACCESS_KEY`: una contraseña que inventes para proteger el link, o vacía si el link es abierto.
+4. Render ejecuta `npm ci && npm run build` y luego `npm start`, y verifica `/api/health`.
+
+Notas:
+- El plan gratuito "duerme" el servicio tras 15 minutos sin uso; la primera visita tarda unos 50 segundos en despertarlo. Abre el link unos minutos antes de la defensa.
+- El disco es efímero: `out/` (OC, control, logs, sesiones) se reinicia en cada despliegue o reinicio. Para la demo es suficiente.
+- Protección de costo: el límite es de 40 mensajes por hora por IP (`MAX_MENSAJES_POR_HORA_IP`) y de 200 mil tokens por sesión. Pon además un límite de gasto en la consola de Anthropic.
+- Railway, Fly.io o Azure App Service sirven con los mismos comandos (`npm ci && npm run build`, `npm start`) y las mismas variables.
 
 ## Demo sin modelo
 

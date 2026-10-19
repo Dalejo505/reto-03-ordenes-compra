@@ -11,6 +11,7 @@ export const LIMITES = {
   maxTokensSesion: entero("MAX_TOKENS_POR_SESION", 200_000),
   timeoutMs: entero("LLM_TIMEOUT_MS", 60_000),
   maxTokensRespuesta: entero("LLM_MAX_TOKENS", 16_000),
+  maxMensajesPorHoraIp: entero("MAX_MENSAJES_POR_HORA_IP", 40),
 }
 
 const ESFUERZOS = ["low", "medium", "high", "xhigh", "max"] as const

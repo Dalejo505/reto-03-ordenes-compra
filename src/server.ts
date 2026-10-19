@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url"
 import { z } from "zod"
 import { procesarTurno } from "./agente/ciclo"
 import { crearProveedor, LIMITES } from "./agente/config"
+import { consumir, ipDe } from "./agente/limite"
 import { buscarSesion, idValido } from "./agente/sesiones"
 import { listarCasos } from "./oc/archivos"
 import { leerPaquete } from "./oc/paquete"
@@ -59,6 +60,10 @@ async function chat(req: IncomingMessage, res: ServerResponse): Promise<void> {
   }
   const cuerpo = CuerpoChat.safeParse(crudo)
   if (!cuerpo.success) return json(res, 400, { error: cuerpo.error.issues.map((i) => i.message).join("; ") })
+  const espera = consumir(ipDe(req), LIMITES.maxMensajesPorHoraIp)
+  if (espera !== null) {
+    return json(res, 429, { error: `Alcanzaste el límite de ${LIMITES.maxMensajesPorHoraIp} mensajes por hora. Intenta de nuevo en ${espera} min.` })
+  }
   const r = await procesarTurno(RAIZ, proveedor, cuerpo.data.sessionId, cuerpo.data.message)
   json(res, 200, r)
 }
